@@ -1,0 +1,18 @@
+extends layout
+
+block content
+  h1= title
+  p 欢迎来到 #[em LocalLibrary]，这是一个非常基本的Express网站，作为Mozilla开发者网络上的教程示例而开发.
+
+  h1 动态内容
+
+  if error
+    p 获取动态内容时出错.
+  else
+    p The library has the following record counts:
+    ul
+      li #[strong Books:] !{data.book_count}
+      li #[strong Copies:] !{data.book_instance_count}
+      li #[strong Copies available:] !{data.book_instance_available_count} 
+      li #[strong Authors:] !{data.author_count}
+      li #[strong Genres:] !{data.genre_count}
