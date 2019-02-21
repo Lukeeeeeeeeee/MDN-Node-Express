@@ -2,6 +2,9 @@ const Genre = require('../models/genre');
 const Book = require('../models/book');
 const async = require('async');
 
+const { body, validationResult } = require('express-validator/check');
+const { sanitizeBody } = require('express-validator/filter');
+
 // 显示完整的藏书种类列表
 exports.genre_list = (req, res, next) => {
     Genre.find()
@@ -45,13 +48,57 @@ exports.genre_detail = (req, res, next) => {
 
 // 由 GET 显示创建藏书种类的表单
 exports.genre_create_get = (req, res) => {
-    res.send('未实现：藏书种类创建表单的 GET');
+    res.render('genre_form', { title: 'Create Genre' });
 };
 
 // 由 POST 处理藏书种类创建操作
-exports.genre_create_post = (req, res) => {
-    res.send('未实现：创建藏书种类的 POST');
-};
+exports.genre_create_post = [
+    // 验证 name 字段是否为空
+    body('name', 'Genre name required')
+        .isLength({ min: 1 })
+        .trim(),
+
+    // sanitize(trim and escape) name 字段
+    sanitizeBody('name')
+        .trim()
+        .escape(),
+
+    // 处理 验证和 sanitization 后的请求
+    (req, res, next) => {
+        const errors = validationResult(req);
+        let genre = new Genre({
+            name: req.body.name
+        });
+
+        if (!errors.isEmpty()) {
+            res.render('genre_form', {
+                title: 'Create Genre',
+                genre: genre,
+                errors: errors.array()
+            });
+            return;
+        } else {
+            Genre.findOne({ name: req.body.name }).exec(function(
+                err,
+                found_genre
+            ) {
+                if (err) {
+                    return next(err);
+                }
+                if (found_genre) {
+                    res.redirect(found_genre.url);
+                } else {
+                    genre.save(function(err) {
+                        if (err) {
+                            return next(err);
+                        }
+                        res.redirect(genre.url);
+                    });
+                }
+            });
+        }
+    }
+];
 
 // 由 GET 显示删除藏书种类的表单
 exports.genre_delete_get = (req, res) => {
