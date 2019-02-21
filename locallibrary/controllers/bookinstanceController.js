@@ -1,4 +1,8 @@
 const BookInstance = require('../models/bookinstance');
+const Book = require('../models/book');
+
+const { body, validationResult } = require('express-validator/check');
+const { sanitizeBody } = require('express-validator/filter');
 
 // 显示完整的藏书副本列表
 exports.bookinstance_list = (req, res, next) => {
@@ -36,14 +40,75 @@ exports.bookinstance_detail = (req, res, next) => {
 };
 
 // 由 GET 显示创建藏书副本的表单
-exports.bookinstance_create_get = (req, res) => {
-    res.send('未实现：藏书副本创建表单的 GET');
+exports.bookinstance_create_get = (req, res, next) => {
+    Book.find({}, 'title').exec(function(err, books) {
+        if (err) {
+            return next(err);
+        }
+        res.render('bookinstance_form', {
+            title: 'Create BookInstance',
+            book_list: books
+        });
+    });
 };
 
 // 由 POST 处理藏书副本创建操作
-exports.bookinstance_create_post = (req, res) => {
-    res.send('未实现：创建藏书副本的 POST');
-};
+exports.bookinstance_create_post = [
+    body('book', 'Book must be specified')
+        .isLength({ min: 1 })
+        .trim(),
+    body('imprint', 'Imprint must be specified')
+        .isLength({ min: 1 })
+        .trim(),
+    body('due_back', 'Invalid date')
+        .optional({ checkFalsy: true })
+        .isISO8601(),
+
+    sanitizeBody('book')
+        .trim()
+        .escape(),
+    sanitizeBody('imprint')
+        .trim()
+        .escape(),
+    sanitizeBody('status')
+        .trim()
+        .escape(),
+    sanitizeBody('due_back').toDate(),
+
+    (req, res, next) => {
+        const errors = validationResult(req);
+
+        let bookinstance = new BookInstance({
+            book: req.body.book,
+            imprint: req.body.imprint,
+            status: req.body.status,
+            due_back: req.body.due_back
+        });
+
+        if (!errors.isEmpty()) {
+            Book.find({}, 'title').exec(function(err, books) {
+                if (err) {
+                    return next(err);
+                }
+                res.render('bookinstance_form', {
+                    title: 'Create BookInstance',
+                    book_list: books,
+                    selected_book: bookinstance.book_id,
+                    errors: errors.array(),
+                    bookinstance: bookinstance
+                });
+            });
+            return;
+        } else {
+            bookinstance.save(function(err) {
+                if (err) {
+                    return next(err);
+                }
+                res.render(bookinstance.url);
+            });
+        }
+    }
+];
 
 // 由 GET 显示删除藏书副本的表单
 exports.bookinstance_delete_get = (req, res) => {
