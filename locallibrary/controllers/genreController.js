@@ -101,13 +101,53 @@ exports.genre_create_post = [
 ];
 
 // 由 GET 显示删除藏书种类的表单
-exports.genre_delete_get = (req, res) => {
-    res.send('未实现：藏书种类删除表单的 GET');
+exports.genre_delete_get = (req, res, next) => {
+    async.parallel(
+        {
+            genre: callback => Genre.findById(req.params.id).exec(callback),
+            genre_books: callback =>
+                Book.find({ genre: req.params.id }).exec(callback)
+        },
+        function(err, results) {
+            if (err) {
+                return next(err);
+            }
+            res.render('genre_delete', {
+                title: 'Delete Genre',
+                genre: results.genre,
+                genre_books: results.genre_books
+            });
+        }
+    );
 };
 
 // 由 POST 处理藏书种类删除操作
 exports.genre_delete_post = (req, res) => {
-    res.send('未实现：删除藏书种类的 POST');
+    async.parallel(
+        {
+            genre: callback => Genre.findById(req.params.id).exec(callback),
+            genre_books: callback =>
+                Book.find({ genre: req.params.id }).exec(callback)
+        },
+        function(err, results) {
+            if (err) {
+                return next(err);
+            }
+            if (results.genre_books.length > 0) {
+                res.render('genre_delete', {
+                    title: 'Delete Genre',
+                    genre: results.genre,
+                    genre_books: results.genre_books
+                });
+                return;
+            } else {
+                Genre.findByIdAndRemove(req.body.id, function deleteGenre(err) {
+                    if (err) { return next(err); }
+                    res.redirect('/catalog/genres');
+                })
+            }
+        }
+    );
 };
 
 // 由 GET 显示更新藏书种类的表单
