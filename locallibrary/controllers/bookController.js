@@ -235,9 +235,11 @@ exports.book_delete_post = (req, res, next) => {
                 return;
             } else {
                 Book.findByIdAndRemove(req.body.id, function deleteBook(err) {
-                    if (err) { return next(err);}
+                    if (err) {
+                        return next(err);
+                    }
                     res.redirect('/catalog/books');
-                })
+                });
             }
         }
     );
